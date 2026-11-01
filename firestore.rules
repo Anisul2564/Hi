@@ -1,0 +1,249 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isStaff() {
+      return isAuthenticated() && (
+        request.auth.token.role in ['ADMIN', 'SUPER_ADMIN', 'ASSISTANT_ADMIN']
+      );
+    }
+
+    match /users/{userId} {
+      // Authenticated users can view user profiles for room discovery; staff can inspect directory
+      allow read: if isAuthenticated();
+
+      // Registration invariant: strictly USER, coins 0, valid bdpId format
+      allow create: if isOwner(userId)
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.role == "USER"
+                    && request.resource.data.coins == 0
+                    && request.resource.data.bdpId is string
+                    && request.resource.data.bdpId.matches('^BDP[0-9]{6,}$');
+
+      // Update invariant: only safe profile fields (username, bio, photoUrl, updatedAt)
+      // Protected system values (role, bdpId, coins, uid) cannot be altered client-side
+      allow update: if isOwner(userId)
+                    && request.resource.data.uid == resource.data.uid
+                    && request.resource.data.role == resource.data.role
+                    && request.resource.data.bdpId == resource.data.bdpId
+                    && request.resource.data.coins == resource.data.coins;
+
+      allow delete: if false;
+    }
+
+    match /system/{counterId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated()
+                            && counterId == "counters"
+                            && request.resource.data.lastBdpNumber is int
+                            && (resource == null || request.resource.data.lastBdpNumber >= resource.data.lastBdpNumber);
+      allow delete: if false;
+    }
+
+    match /roleRequests/{requestId} {
+      // Owners can read their own applications; Staff can inspect all
+      allow read: if isAuthenticated() && (resource.data.requesterUid == request.auth.uid || isStaff());
+
+      // Normal application creation
+      allow create: if isAuthenticated()
+                    && request.resource.data.requesterUid == request.auth.uid
+                    && request.resource.data.status == "PENDING"
+                    && request.resource.data.requestedRole in ["HOST", "MODERATOR", "OFFICIAL", "ASSISTANT_ADMIN", "ADMIN"]
+                    && (request.resource.data.reviewedAt == null || request.resource.data.reviewedAt == "")
+                    && (request.resource.data.reviewerUid == null || request.resource.data.reviewerUid == "")
+                    && (request.resource.data.reviewerRole == null || request.resource.data.reviewerRole == "")
+                    && (request.resource.data.reviewNote == null || request.resource.data.reviewNote == "");
+
+      // Self-cancellation by applicant or rejection review update by authorized staff
+      allow update: if isAuthenticated() && (
+        // Case 1: Applicant cancels their own PENDING request
+        (resource.data.requesterUid == request.auth.uid
+         && resource.data.status == "PENDING"
+         && request.resource.data.status == "CANCELLED"
+         && request.resource.data.requesterUid == resource.data.requesterUid
+         && request.resource.data.requestedRole == resource.data.requestedRole
+         && (request.resource.data.reviewerUid == null || request.resource.data.reviewerUid == ""))
+        ||
+        // Case 2: Authorized staff rejecting request (no target role promotion)
+        (isStaff()
+         && resource.data.status == "PENDING"
+         && request.resource.data.status in ["REJECTED", "PENDING"]
+         && request.resource.data.requesterUid == resource.data.requesterUid
+         && request.resource.data.requestedRole == resource.data.requestedRole)
+      );
+
+      allow delete: if false;
+    }
+
+    match /auditLogs/{logId} {
+      // Immutable audit trail: read permitted for staff; client writes forbidden
+      allow read: if isStaff();
+      allow write: if false;
+    }
+
+    match /rooms/{roomId} {
+      // Anyone authenticated can read active public rooms
+      allow read: if isAuthenticated();
+
+      // Only authenticated users can create a room, and must declare themselves as hostUid
+      allow create: if isAuthenticated()
+                    && request.resource.data.roomId == roomId
+                    && request.resource.data.hostUid == request.auth.uid
+                    && request.resource.data.status == "LIVE"
+                    && request.resource.data.maxSpeakers == 12
+                    && request.resource.data.visibility in ["PUBLIC", "PRIVATE"];
+
+      // Host or staff can update room status/metadata, participants cannot alter hostUid or maxSpeakers
+      allow update: if isAuthenticated()
+                    && (resource.data.hostUid == request.auth.uid || isStaff())
+                    && request.resource.data.hostUid == resource.data.hostUid
+                    && request.resource.data.maxSpeakers == resource.data.maxSpeakers;
+
+      allow delete: if false;
+
+      match /participants/{participantUid} {
+        // Anyone in the room can see participants
+        allow read: if isAuthenticated();
+
+        // User can only create their own participant record as LISTENER
+        allow create: if isAuthenticated()
+                      && participantUid == request.auth.uid
+                      && request.resource.data.uid == request.auth.uid
+                      && (request.resource.data.roomRole == "LISTENER" || request.resource.data.uid == get(/databases/$(database)/documents/rooms/$(roomId)).data.hostUid)
+                      && request.resource.data.seatIndex >= -1
+                      && request.resource.data.seatIndex < 12;
+
+        // User can update their own micState, seatIndex, or revert role to SPEAKER/LISTENER.
+        // A regular participant can NEVER self-promote to HOST, CO_HOST, or MODERATOR.
+        // Room host or staff can update participants (e.g. appoint CO_HOST/MODERATOR, moderate mic, or kick from seat)
+        allow update: if isAuthenticated()
+                      && request.resource.data.uid == resource.data.uid
+                      && (
+                        // Case 1: Room host or staff updating participant
+                        (get(/databases/$(database)/documents/rooms/$(roomId)).data.hostUid == request.auth.uid || isStaff())
+                        ||
+                        // Case 2: Participant self-update with strict role and seat constraints
+                        (participantUid == request.auth.uid
+                         // Cannot change immutable system fields
+                         && request.resource.data.uid == resource.data.uid
+                         && request.resource.data.role == resource.data.role
+                         // Seat index must be valid (-1 to 11)
+                         && request.resource.data.seatIndex >= -1
+                         && request.resource.data.seatIndex < 12
+                         // Regular user cannot arbitrarily assign themselves HOST, CO_HOST, or MODERATOR
+                         && (
+                           // Host can retain HOST
+                           (get(/databases/$(database)/documents/rooms/$(roomId)).data.hostUid == request.auth.uid)
+                           ||
+                           // If not room host, participant cannot elevate beyond their current role or SPEAKER/LISTENER
+                           (request.resource.data.roomRole in ["SPEAKER", "LISTENER"] || request.resource.data.roomRole == resource.data.roomRole)
+                         )
+                        )
+                      );
+
+        // User can remove themselves, or host/staff can remove participant
+        allow delete: if isAuthenticated()
+                      && (participantUid == request.auth.uid || get(/databases/$(database)/documents/rooms/$(roomId)).data.hostUid == request.auth.uid || isStaff());
+      }
+    }
+
+    // ==========================================
+    // WALLET, COINS & GIFT TRANSACTION RULES
+    // ==========================================
+
+    match /wallets/{walletUid} {
+      // User can only read their own wallet; Staff can inspect
+      allow read: if isAuthenticated() && (request.auth.uid == walletUid || isStaff());
+
+      // Initial wallet creation: strictly coinBalance = 0 and matches authenticated UID
+      allow create: if isOwner(walletUid)
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.coinBalance == 0
+                    && request.resource.data.totalPurchasedCoins == 0
+                    && request.resource.data.totalGiftedCoins == 0
+                    && request.resource.data.totalReceivedCoins == 0;
+
+      // Normal users CANNOT update coin balances or totals client-side
+      // Direct client updates are forbidden to prevent client-side coin manipulation
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    match /gifts/{giftId} {
+      // Authenticated users can read enabled gifts
+      allow read: if isAuthenticated() && (resource.data.enabled == true || isStaff());
+      // Only authorized staff/admin can manage the gift catalog
+      allow write: if isStaff();
+    }
+
+    match /giftTransactions/{transactionId} {
+      // Sender or receiver can read the transaction; Staff can inspect
+      allow read: if isAuthenticated() && (
+        resource.data.senderUid == request.auth.uid
+        || resource.data.receiverUid == request.auth.uid
+        || isStaff()
+      );
+
+      // Clients can only submit a PENDING transaction request
+      // Client CANNOT create a COMPLETED, FAILED, or CANCELLED transaction
+      allow create: if isAuthenticated()
+                    && request.resource.data.transactionId == transactionId
+                    && request.resource.data.senderUid == request.auth.uid
+                    && request.resource.data.receiverUid != request.auth.uid
+                    && request.resource.data.quantity > 0
+                    && request.resource.data.quantity <= 9999
+                    && request.resource.data.status == "PENDING";
+
+      // Clients cannot update or tamper with transaction history
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    match /coinPackages/{packageId} {
+      // Authenticated users can read enabled recharge packages
+      allow read: if isAuthenticated() && (resource.data.enabled == true || isStaff());
+      // Only authorized staff/admin can modify packages
+      allow write: if isStaff();
+    }
+
+    match /paymentRequests/{requestId} {
+      // Requester can read their own payment requests; Staff can inspect all
+      allow read: if isAuthenticated() && (resource.data.uid == request.auth.uid || isStaff());
+
+      // User can create their own PENDING manual recharge request (bKash/Nagad/Rocket)
+      allow create: if isAuthenticated()
+                    && request.resource.data.requestId == requestId
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.status == "PENDING"
+                    && request.resource.data.paymentMethod in ["bKash", "Nagad", "Rocket"]
+                    && (request.resource.data.reviewedAt == null || request.resource.data.reviewedAt == "")
+                    && (request.resource.data.reviewedBy == null || request.resource.data.reviewedBy == "")
+                    && (request.resource.data.reviewNote == null || request.resource.data.reviewNote == "");
+
+      // User can cancel their own pending request; Staff can review/reject
+      allow update: if isAuthenticated() && (
+        // Requester cancels pending request
+        (resource.data.uid == request.auth.uid
+         && resource.data.status == "PENDING"
+         && request.resource.data.status == "CANCELLED"
+         && request.resource.data.uid == resource.data.uid)
+        ||
+        // Staff reviewing
+        (isStaff()
+         && resource.data.status == "PENDING"
+         && request.resource.data.status in ["APPROVED", "REJECTED", "PENDING"]
+         && request.resource.data.uid == resource.data.uid)
+      );
+
+      allow delete: if false;
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "BD PARTY",
+  "description": "BD PARTY is a premium mobile social voice-chat application featuring live audio rooms, games, mic battles, gifting, VIP tiers, and community events.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

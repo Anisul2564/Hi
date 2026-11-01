@@ -1,0 +1,22 @@
+{
+  "name": "bdparty-functions",
+  "version": "1.0.0",
+  "description": "BD PARTY Cloud Functions - Secure LiveKit Token Provider & Voice Stage Authority",
+  "main": "index.js",
+  "engines": {
+    "node": "20"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "serve": "firebase emulators:start --only functions",
+    "shell": "firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.0.0",
+    "firebase-functions": "^5.0.0",
+    "livekit-server-sdk": "^2.1.2"
+  },
+  "private": true
+}

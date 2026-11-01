@@ -1,0 +1,202 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile document containing account credentials, public identity, and virtual coin balance.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Authentication user ID."
+        },
+        "bdpId": {
+          "type": "string",
+          "description": "Permanent sequential BD PARTY ID in the format BDP000001."
+        },
+        "username": {
+          "type": "string",
+          "description": "Display name or handle chosen by the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address associated with the account."
+        },
+        "photoUrl": {
+          "type": "string",
+          "description": "URL of the user's avatar image."
+        },
+        "bio": {
+          "type": "string",
+          "description": "User profile biography or status description."
+        },
+        "role": {
+          "type": "string",
+          "description": "User permission role. Defaults to USER for all new accounts.",
+          "enum": ["USER", "HOST", "OFFICIAL", "MODERATOR", "ASSISTANT_ADMIN", "ADMIN", "SUPER_ADMIN"]
+        },
+        "coins": {
+          "type": "integer",
+          "description": "In-app virtual coin balance. Initialized to 0 and immutable by normal client updates."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the user account was created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the profile was last modified."
+        }
+      },
+      "required": ["uid", "bdpId", "username", "role", "coins"]
+    },
+    "Counter": {
+      "title": "Counter",
+      "description": "System counter used for sequential permanent BD PARTY ID generation.",
+      "type": "object",
+      "properties": {
+        "lastBdpNumber": {
+          "type": "integer",
+          "description": "The latest generated numeric sequence for BDP ID."
+        }
+      },
+      "required": ["lastBdpNumber"]
+    },
+    "RoleRequest": {
+      "title": "RoleRequest",
+      "description": "Application submitted by a user for special roles or verification (HOST, MODERATOR, OFFICIAL, ASSISTANT_ADMIN, ADMIN).",
+      "type": "object",
+      "properties": {
+        "requestId": {
+          "type": "string",
+          "description": "Unique role application request ID."
+        },
+        "requesterUid": {
+          "type": "string",
+          "description": "Firebase UID of the applicant."
+        },
+        "requesterBdpId": {
+          "type": "string",
+          "description": "Permanent BDP ID of the applicant."
+        },
+        "requesterUsername": {
+          "type": "string",
+          "description": "Username of the applicant at time of submission."
+        },
+        "currentRole": {
+          "type": "string",
+          "description": "Role held by the applicant at submission."
+        },
+        "requestedRole": {
+          "type": "string",
+          "description": "Target role applied for.",
+          "enum": ["HOST", "MODERATOR", "OFFICIAL", "ASSISTANT_ADMIN", "ADMIN"]
+        },
+        "reason": {
+          "type": "string",
+          "description": "Why the user is applying for this role."
+        },
+        "experience": {
+          "type": "string",
+          "description": "Prior experience relevant to the role."
+        },
+        "additionalInfo": {
+          "type": "string",
+          "description": "Optional portfolio, links, or notes."
+        },
+        "status": {
+          "type": "string",
+          "description": "Approval status of the request.",
+          "enum": ["PENDING", "APPROVED", "REJECTED"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the application was submitted."
+        },
+        "reviewedAt": {
+          "type": "string",
+          "description": "Timestamp when the application was reviewed."
+        },
+        "reviewerUid": {
+          "type": "string",
+          "description": "UID of the reviewing administrator."
+        },
+        "reviewerRole": {
+          "type": "string",
+          "description": "Role of the reviewing administrator."
+        },
+        "reviewNote": {
+          "type": "string",
+          "description": "Feedback or reason for decision from the reviewer."
+        }
+      },
+      "required": ["requestId", "requesterUid", "requesterBdpId", "requestedRole", "reason", "status"]
+    },
+    "Room": {
+      "title": "Room",
+      "description": "Live real-time voice room document with WebRTC stage configuration.",
+      "type": "object",
+      "properties": {
+        "roomId": { "type": "string", "description": "Unique room ID." },
+        "hostUid": { "type": "string", "description": "UID of the room host." },
+        "hostBdpId": { "type": "string", "description": "BD PARTY ID of the host." },
+        "hostUsername": { "type": "string", "description": "Username of the host." },
+        "title": { "type": "string", "description": "Room stage title." },
+        "description": { "type": "string", "description": "Room stage description." },
+        "category": { "type": "string", "description": "Room category." },
+        "visibility": { "type": "string", "enum": ["PUBLIC", "PRIVATE"] },
+        "status": { "type": "string", "enum": ["LIVE", "ENDED"] },
+        "maxSpeakers": { "type": "integer", "description": "Seat limit, exactly 12." },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "participantCount": { "type": "integer" },
+        "listenerCount": { "type": "integer" },
+        "backgroundUrl": { "type": "string" },
+        "coverUrl": { "type": "string" }
+      },
+      "required": ["roomId", "hostUid", "hostBdpId", "title", "status", "maxSpeakers"]
+    },
+    "Participant": {
+      "title": "Participant",
+      "description": "Active participant or listener presence inside a room.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "bdpId": { "type": "string" },
+        "username": { "type": "string" },
+        "photoUrl": { "type": "string" },
+        "role": { "type": "string" },
+        "roomRole": { "type": "string", "enum": ["HOST", "CO_HOST", "MODERATOR", "SPEAKER", "LISTENER"] },
+        "micState": { "type": "string", "enum": ["MUTED", "UNMUTED"] },
+        "seatIndex": { "type": "integer", "description": "-1 for listener, 0..11 for seat." },
+        "joinedAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "bdpId", "username", "roomRole", "micState"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Individual user profiles stored by Firebase UID."
+    },
+    "/system/{counterId}": {
+      "schema": "Counter",
+      "description": "System counters for BDP ID sequence generation."
+    },
+    "/roleRequests/{requestId}": {
+      "schema": "RoleRequest",
+      "description": "Role and verification applications submitted by users."
+    },
+    "/rooms/{roomId}": {
+      "schema": "Room",
+      "description": "Real-time voice rooms."
+    },
+    "/rooms/{roomId}/participants/{uid}": {
+      "schema": "Participant",
+      "description": "Live participants and speakers inside the voice room."
+    }
+  }
+}

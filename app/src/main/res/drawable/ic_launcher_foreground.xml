@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Golden Crown Top -->
+    <path
+        android:pathData="M38,36 L43,44 L54,34 L65,44 L70,36 L68,48 L40,48 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="38"
+                android:startY="34"
+                android:endX="70"
+                android:endY="48"
+                android:type="linear">
+                <item android:color="#FFFFE082" android:offset="0.0" />
+                <item android:color="#FFFFB300" android:offset="0.5" />
+                <item android:color="#FFFF8F00" android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <!-- Crown gems -->
+    <path
+        android:fillColor="#FFEC4899"
+        android:pathData="M54,36m-2,0a2,2 0 1,0 4,0a2,2 0 1,0 -4,0" />
+    <path
+        android:fillColor="#FF38BDF8"
+        android:pathData="M43,42m-1.5,0a1.5,1.5 0 1,0 3,0a1.5,1.5 0 1,0 -3,0" />
+    <path
+        android:fillColor="#FF38BDF8"
+        android:pathData="M65,42m-1.5,0a1.5,1.5 0 1,0 3,0a1.5,1.5 0 1,0 -3,0" />
+
+    <!-- Microphone Capsule (Center) -->
+    <path
+        android:pathData="M48,50 C48,46.7 50.7,44 54,44 C57.3,44 60,46.7 60,50 L60,61 C60,64.3 57.3,67 54,67 C50.7,67 48,64.3 48,61 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="48"
+                android:startY="44"
+                android:endX="60"
+                android:endY="67"
+                android:type="linear">
+                <item android:color="#FFFFD54F" android:offset="0.0" />
+                <item android:color="#FFF59E0B" android:offset="0.7" />
+                <item android:color="#FFD97706" android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Microphone Cradle / Arc -->
+    <path
+        android:pathData="M43,57 C43,64 47.9,69.5 54,69.5 C60.1,69.5 65,64 65,57"
+        android:strokeWidth="3.2"
+        android:strokeLineCap="round">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:startX="43"
+                android:startY="57"
+                android:endX="65"
+                android:endY="70"
+                android:type="linear">
+                <item android:color="#FFC084FC" android:offset="0.0" />
+                <item android:color="#FFA855F7" android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Microphone Stand Base -->
+    <path
+        android:pathData="M54,69.5 L54,77"
+        android:strokeColor="#FFA855F7"
+        android:strokeWidth="3.2"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M46,77 L62,77"
+        android:strokeColor="#FFC084FC"
+        android:strokeWidth="3.2"
+        android:strokeLineCap="round" />
+
+    <!-- Audio Waves / Sparkles Left & Right -->
+    <path
+        android:pathData="M37,52 C35,55 35,60 37,63"
+        android:strokeColor="#FFEC4899"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M32,48 C29,53 29,62 32,67"
+        android:strokeColor="#FF818CF8"
+        android:strokeWidth="2.2"
+        android:strokeLineCap="round" />
+
+    <path
+        android:pathData="M71,52 C73,55 73,60 71,63"
+        android:strokeColor="#FFEC4899"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M76,48 C79,53 79,62 76,67"
+        android:strokeColor="#FF818CF8"
+        android:strokeWidth="2.2"
+        android:strokeLineCap="round" />
+
+    <!-- Top Star Sparkles -->
+    <path
+        android:fillColor="#FFFFD700"
+        android:pathData="M31,35 L33,30 L35,35 L40,37 L35,39 L33,44 L31,39 L26,37 Z" />
+    <path
+        android:fillColor="#FFFFD700"
+        android:pathData="M74,33 L75.5,29 L77,33 L81,34.5 L77,36 L75.5,40 L74,36 L70,34.5 Z" />
+</vector>
